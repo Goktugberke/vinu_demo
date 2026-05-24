@@ -27,7 +27,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── Ambient Glow Blobs ─── */
+/* glow blobs */
 .glow-orb {
   position: fixed;
   border-radius: 50%;
@@ -70,7 +70,7 @@ body {
   50% { transform: translateY(-30px) scale(1.05); }
 }
 
-/* ─── Gradient Border Card ─── */
+/* cards */
 .card-glow {
   position: relative;
   border-radius: 16px;
@@ -115,7 +115,7 @@ body {
   box-shadow: 0 0 40px rgba(139, 92, 246, 0.06);
 }
 
-/* ─── Status Card (top bar) ─── */
+/* status bar */
 .status-card {
   position: relative;
   border-radius: 14px;
@@ -134,7 +134,7 @@ body {
   background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.4), transparent);
 }
 
-/* ─── Gradient Text ─── */
+/* gradient text */
 .gradient-text {
   background: linear-gradient(135deg, #e8e5f0 30%, #a855f7 100%);
   -webkit-background-clip: text;
@@ -142,7 +142,7 @@ body {
   background-clip: text;
 }
 
-/* ─── Animations ─── */
+/* animations */
 @keyframes pulse-glow {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
   50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(74, 222, 128, 0); }
@@ -170,7 +170,7 @@ body {
   animation: fade-in 0.6s ease-out;
 }
 
-/* ─── Button ─── */
+/* buttons */
 .btn-accent {
   position: relative;
   padding: 10px 24px;
@@ -216,7 +216,7 @@ body {
   z-index: 1;
 }
 
-/* ─── Scrollbar ─── */
+/* scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
 }
@@ -234,7 +234,7 @@ body {
   background: #2e2650;
 }
 
-/* ─── Empty State Icon ─── */
+/* icons */
 @keyframes gentle-bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }

@@ -212,14 +212,12 @@ export default function NotificationsClient() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Ambient glow orbs */}
       <div className="glow-orb glow-orb--hero" />
       <div className="glow-orb glow-orb--side" />
       <div className="glow-orb glow-orb--right" />
 
       <div className="relative z-10 px-6 pt-16 pb-12 max-w-[720px] mx-auto">
 
-        {/* ── Hero Header ── */}
         <header className="mb-14 animate-fade-in">
           <h1 className="gradient-text text-4xl font-bold tracking-tight mb-3">
             USDT Whale Watcher
@@ -230,7 +228,6 @@ export default function NotificationsClient() {
           </p>
         </header>
 
-        {/* ── Status Bar ── */}
         <div className="status-card px-5 py-4 mb-10 animate-fade-in flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {isConnected ? (
@@ -271,14 +268,12 @@ export default function NotificationsClient() {
           </div>
         </div>
 
-        {/* ── Error ── */}
         {error && (
           <div className="mb-8 px-5 py-4 rounded-2xl border border-danger/20 bg-danger/5 text-sm text-danger animate-slide-up">
             {error}
           </div>
         )}
 
-        {/* ── Transfers Feed ── */}
         <section>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -337,7 +332,6 @@ export default function NotificationsClient() {
                   className="card-glow p-5 animate-slide-up"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
-                  {/* Amount Row */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -363,7 +357,6 @@ export default function NotificationsClient() {
                     </span>
                   </div>
 
-                  {/* Addresses */}
                   <div className="space-y-2.5 mb-4">
                     <div className="flex items-center gap-3 group/addr">
                       <span className="text-[11px] uppercase tracking-wider text-muted/60 w-11 flex-shrink-0 font-medium">
@@ -399,7 +392,6 @@ export default function NotificationsClient() {
                     </div>
                   </div>
 
-                  {/* TX Hash */}
                   <div className="pt-3.5" style={{ borderTop: '1px solid rgba(28, 23, 48, 0.8)' }}>
                     <a
                       href={`https://etherscan.io/tx/${n.data.txHash}`}
