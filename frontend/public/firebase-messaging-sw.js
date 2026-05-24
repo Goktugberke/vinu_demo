@@ -6,8 +6,8 @@ firebase.initializeApp({
   authDomain: 'vinu-demo.firebaseapp.com',
   projectId: 'vinu-demo',
   storageBucket: 'vinu-demo.firebasestorage.app',
-  messagingSenderId: '1056478923456',
-  appId: '1:1056478923456:web:a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
+  messagingSenderId: '579495329766',
+  appId: '1:579495329766:web:69af3f56059bb3f3496027',
 });
 
 const messaging = firebase.messaging();
