@@ -1,76 +1,99 @@
 import {
   Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
   Logger,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ethers } from 'ethers';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TransferPayload } from '../notifications/types/transfer-payload.type';
+
+const TRANSFER_EVENT_ABI = [
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+];
 
 @Injectable()
 export class BlockchainService implements OnModuleInit, OnModuleDestroy {
-  private provider!: ethers.WebSocketProvider;
   private readonly logger = new Logger(BlockchainService.name);
+  private provider!: ethers.WebSocketProvider;
   private contract!: ethers.Contract;
   private decimals!: number;
+  private threshold!: bigint;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async onModuleInit() {
-    const url = this.configService.get<string>('ETH_WSS_URL');
-    const address = this.configService.get<string>('USDT_CONTRACT_ADDRESS');
-    const abi = [
-      'event Transfer(address indexed from, address indexed to, uint256 value)',
-    ];
-    const decimalsRaw = this.configService.get<string>('USDT_DECIMALS');
-    if (!decimalsRaw) throw new Error('USDT_DECIMALS is not defined');
-    this.decimals = parseInt(decimalsRaw, 10);
-    const minRaw = this.configService.get<string>('MIN_TRANSFER_USDT');
+  async onModuleInit(): Promise<void> {
+    const { wssUrl, contractAddress, minTransfer, decimals } =
+      this.loadConfig();
+    this.decimals = decimals;
+    this.threshold = BigInt(minTransfer) * 10n ** BigInt(decimals);
 
-    if (!url || !address || !minRaw) {
-      this.logger.error(
-        'ETH_WSS_URL, USDT_CONTRACT_ADDRESS, or MIN_TRANSFER_USDT is not defined in environment variables',
-      );
-      throw new Error(
-        'One or more required environment variables are not defined',
-      );
-    }
-    const THRESHOLD = BigInt(minRaw) * 10n ** BigInt(this.decimals);
-
-    this.provider = new ethers.WebSocketProvider(url);
-
-    this.contract = new ethers.Contract(address, abi, this.provider);
-    await this.contract.on(
-      'Transfer',
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      async (
-        from: string,
-        to: string,
-        value: bigint,
-        { log }: ethers.ContractEventPayload,
-      ) => {
-        if (value < THRESHOLD) {
-          return;
-          //do nothing if transfer is below threshold
-        }
-        this.logger.log(
-          `Transfer: ${from} → ${to}, ${ethers.formatUnits(value, this.decimals)} USDT, tx: ${log.transactionHash}, block: ${log.blockNumber}`,
-        );
-        await this.notificationsService.sendTransferNotification({
-          from,
-          to,
-          amount: ethers.formatUnits(value, this.decimals),
-          txHash: log.transactionHash,
-        });
-      },
+    this.provider = new ethers.WebSocketProvider(wssUrl);
+    this.contract = new ethers.Contract(
+      contractAddress,
+      TRANSFER_EVENT_ABI,
+      this.provider,
     );
+
+    await this.contract.on('Transfer', this.handleTransfer);
+    this.logger.log(`Listening Transfer events; threshold=${minTransfer} USDT`);
   }
 
-  async onModuleDestroy() {
-    await this.provider.destroy();
+  async onModuleDestroy(): Promise<void> {
+    await this.provider?.destroy();
+  }
+
+  private handleTransfer = async (
+    from: string,
+    to: string,
+    value: bigint,
+    { log }: ethers.ContractEventPayload,
+  ): Promise<void> => {
+    if (value < this.threshold) return;
+
+    const amount = ethers.formatUnits(value, this.decimals);
+    this.logger.log(
+      `Transfer: ${from} → ${to}, ${amount} USDT, tx: ${log.transactionHash}, block: ${log.blockNumber}`,
+    );
+
+    const payload: TransferPayload = {
+      from,
+      to,
+      amount,
+      txHash: log.transactionHash,
+    };
+    await this.notificationsService.sendTransferNotification(payload);
+  };
+
+  private loadConfig(): {
+    wssUrl: string;
+    contractAddress: string;
+    minTransfer: string;
+    decimals: number;
+  } {
+    const wssUrl = this.configService.get<string>('ETH_WSS_URL');
+    const contractAddress = this.configService.get<string>(
+      'USDT_CONTRACT_ADDRESS',
+    );
+    const minTransfer = this.configService.get<string>('MIN_TRANSFER_USDT');
+    const decimalsRaw = this.configService.get<string>('USDT_DECIMALS');
+
+    if (!wssUrl || !contractAddress || !minTransfer || !decimalsRaw) {
+      this.logger.error(
+        'Missing required env: ETH_WSS_URL, USDT_CONTRACT_ADDRESS, MIN_TRANSFER_USDT, USDT_DECIMALS',
+      );
+      throw new Error('Missing required blockchain env vars');
+    }
+
+    return {
+      wssUrl,
+      contractAddress,
+      minTransfer,
+      decimals: parseInt(decimalsRaw, 10),
+    };
   }
 }
