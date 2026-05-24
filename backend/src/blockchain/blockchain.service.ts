@@ -13,6 +13,8 @@ const TRANSFER_EVENT_ABI = [
   'event Transfer(address indexed from, address indexed to, uint256 value)',
 ];
 
+const DEDUP_CACHE_MAX = 1000;
+
 @Injectable()
 export class BlockchainService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BlockchainService.name);
@@ -20,6 +22,9 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
   private contract!: ethers.Contract;
   private decimals!: number;
   private threshold!: bigint;
+
+  private readonly seenLogs = new Set<string>();
+  private readonly seenLogsOrder: string[] = [];
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,6 +60,13 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> => {
     if (value < this.threshold) return;
 
+    const logKey = `${log.transactionHash}:${log.index}`;
+    if (this.seenLogs.has(logKey)) {
+      this.logger.warn(`Duplicate event skipped: ${logKey}`);
+      return;
+    }
+    this.markSeen(logKey);
+
     const amount = ethers.formatUnits(value, this.decimals);
     this.logger.log(
       `Transfer: ${from} → ${to}, ${amount} USDT, tx: ${log.transactionHash}, block: ${log.blockNumber}`,
@@ -68,6 +80,15 @@ export class BlockchainService implements OnModuleInit, OnModuleDestroy {
     };
     await this.notificationsService.sendTransferNotification(payload);
   };
+
+  private markSeen(key: string): void {
+    this.seenLogs.add(key);
+    this.seenLogsOrder.push(key);
+    if (this.seenLogsOrder.length > DEDUP_CACHE_MAX) {
+      const oldest = this.seenLogsOrder.shift();
+      if (oldest) this.seenLogs.delete(oldest);
+    }
+  }
 
   private loadConfig(): {
     wssUrl: string;
