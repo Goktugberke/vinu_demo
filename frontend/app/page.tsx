@@ -1,4 +1,11 @@
-import NotificationsClient from './components/NotificationsClient';
+"use client";
+
+import dynamic from "next/dynamic";
+
+const NotificationsClient = dynamic(
+  () => import("./components/NotificationsClient"),
+  { ssr: false },
+);
 
 export default function Home() {
   return (

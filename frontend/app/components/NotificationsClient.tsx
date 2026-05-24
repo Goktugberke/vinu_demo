@@ -55,57 +55,43 @@ function getPermissionSnapshot(): NotificationPermission {
     : "default";
 }
 
-function getServerSnapshot(): NotificationPermission {
+function getPermissionServerSnapshot(): NotificationPermission {
   return "default";
-}
-
-function readStoredNotifications(): NotificationItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as NotificationItem[]) : [];
-  } catch (err) {
-    console.error("[Storage] read failed", err);
-    return [];
-  }
-}
-
-function writeStoredNotifications(items: NotificationItem[]): void {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(items.slice(0, MAX_STORED)),
-    );
-  } catch (err) {
-    console.error("[Storage] write failed", err);
-  }
 }
 
 export default function NotificationsClient() {
   const permission = useSyncExternalStore(
     subscribePermission,
     getPermissionSnapshot,
-    getServerSnapshot,
+    getPermissionServerSnapshot,
   );
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as NotificationItem[]) : [];
+    } catch (err) {
+      console.error("[Storage] read failed", err);
+      return [];
+    }
+  });
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(
-    readStoredNotifications,
-  );
 
-  const updateNotifications = useCallback(
-    (updater: (prev: NotificationItem[]) => NotificationItem[]) => {
-      setNotifications((prev) => {
-        const next = updater(prev);
-        writeStoredNotifications(next);
-        return next;
-      });
-    },
-    [],
-  );
+  // Persist notifications to localStorage when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(notifications.slice(0, MAX_STORED)),
+      );
+    } catch (err) {
+      console.error("[Storage] write failed", err);
+    }
+  }, [notifications]);
 
+  // FCM setup once permission is granted
   useEffect(() => {
     if (permission !== "granted") return;
 
@@ -155,7 +141,7 @@ export default function NotificationsClient() {
           const data = (payload.data ?? {}) as Record<string, string>;
           const txHash = data.txHash;
 
-          updateNotifications((prev) => {
+          setNotifications((prev) => {
             if (txHash && prev.some((n) => n.data.txHash === txHash)) {
               return prev;
             }
@@ -181,7 +167,7 @@ export default function NotificationsClient() {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [permission, updateNotifications]);
+  }, [permission]);
 
   const enableNotifications = useCallback(async () => {
     setIsLoading(true);
@@ -202,8 +188,8 @@ export default function NotificationsClient() {
   }, []);
 
   const clearAll = useCallback(() => {
-    updateNotifications(() => []);
-  }, [updateNotifications]);
+    setNotifications([]);
+  }, []);
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
